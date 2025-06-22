@@ -36,30 +36,35 @@
       cursor: pointer;
     }
 
-    #bracket-container {
+    #bracket-wrapper {
       display: flex;
-      overflow-x: auto;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+    }
+
+    .bracket-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       position: relative;
-      padding: 2rem 0;
-      min-height: 500px;
+      min-width: 300px;
     }
 
     .round {
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      min-width: 200px;
-      position: relative;
+      margin-bottom: 20px;
     }
 
     .match {
       background: #ffffff;
       border: 1px solid #ddd;
       border-radius: 8px;
-      margin: 20px 0;
+      margin: 10px 0;
       padding: 10px;
-      width: 160px;
+      width: 200px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
@@ -83,74 +88,92 @@
       font-weight: bold;
     }
 
-    svg.connector {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      z-index: 0;
+    .center-round {
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .final-label {
+      font-weight: bold;
+      margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
   <h1>Create Tournament Bracket</h1>
   <textarea id="players" placeholder="Enter one player name per line"></textarea>
-  <button onclick="createTeamsAndBracket()">Generate Bracket</button>
+  <button onclick="generateBracket()">Generate Bracket</button>
 
-  <div id="bracket-container"></div>
+  <div id="bracket-wrapper">
+    <div id="left-bracket" class="bracket-container"></div>
+    <div id="center-final" class="bracket-container"></div>
+    <div id="right-bracket" class="bracket-container"></div>
+  </div>
 
   <script>
-    let rounds = [];
+    let leftRounds = [], rightRounds = [], finalMatch = [];
 
-    function createTeamsAndBracket() {
+    function generateBracket() {
       const input = document.getElementById("players").value.trim();
-      if (!input) return;
-
       const names = input.split("\n").map(n => n.trim()).filter(Boolean);
-      const shuffled = names.sort(() => 0.5 - Math.random());
 
+      if (names.length < 2) {
+        alert("Enter at least 2 player names.");
+        return;
+      }
+
+      const shuffled = names.sort(() => 0.5 - Math.random());
       const teams = [];
       for (let i = 0; i < shuffled.length;) {
-        const teamSize = (shuffled.length - i >= 4) ? 2 : shuffled.length - i;
-        const teamMembers = shuffled.slice(i, i + teamSize);
-        teams.push("Team " + teamMembers.join(" & "));
+        const teamSize = (shuffled.length - i > 3) ? 2 : (shuffled.length - i);
+        teams.push("Team " + shuffled.slice(i, i + teamSize).join(" & "));
         i += teamSize;
       }
 
-      createBracket(teams);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const half = Math.ceil(teams.length / 2);
+      const leftTeams = teams.slice(0, half);
+      const rightTeams = teams.slice(half);
+
+      leftRounds = buildRounds(leftTeams);
+      rightRounds = buildRounds(rightTeams);
+      finalMatch = [[null, null]];
+
+      drawFullBracket();
     }
 
-    function createBracket(teams) {
-      const r1 = [];
+    function buildRounds(teams) {
+      const firstRound = [];
       for (let i = 0; i < teams.length; i += 2) {
-        r1.push([teams[i], teams[i + 1] || null]);
-      }
-      rounds = [r1];
-
-      let numMatches = r1.length / 2;
-      while (numMatches >= 1) {
-        rounds.push(new Array(Math.ceil(numMatches)).fill([null, null]));
-        numMatches /= 2;
+        firstRound.push([teams[i], teams[i + 1] || null]);
       }
 
-      drawBracket();
+      const rounds = [firstRound];
+      let count = firstRound.length;
+
+      while (count > 1) {
+        const nextRound = new Array(Math.ceil(count / 2)).fill([null, null]);
+        rounds.push(nextRound);
+        count = nextRound.length;
+      }
+
+      return rounds;
     }
 
-    function drawBracket() {
-      const container = document.getElementById("bracket-container");
-      container.innerHTML = "";
-      const matchRefs = [];
+    function drawFullBracket() {
+      document.getElementById("left-bracket").innerHTML = "";
+      document.getElementById("right-bracket").innerHTML = "";
+      document.getElementById("center-final").innerHTML = "";
 
-      const maxMatches = Math.max(...rounds.map(r => r.length));
+      drawBracket("left-bracket", leftRounds, "left");
+      drawBracket("right-bracket", rightRounds, "right");
+      drawFinalMatch();
+    }
 
+    function drawBracket(containerId, rounds, side) {
+      const container = document.getElementById(containerId);
       rounds.forEach((round, rIdx) => {
         const roundDiv = document.createElement("div");
         roundDiv.className = "round";
-
-        matchRefs[rIdx] = [];
 
         round.forEach((match, mIdx) => {
           const matchDiv = document.createElement("div");
@@ -160,94 +183,78 @@
             const teamDiv = document.createElement("div");
             teamDiv.className = "team";
             teamDiv.innerHTML = team || "<em>?</em>";
+
             if (team) {
-              teamDiv.onclick = () => handleWinner(rIdx, mIdx, tIdx);
+              teamDiv.onclick = () => {
+                rounds[rIdx][mIdx].winner = tIdx;
+                updateNextRound(rounds, rIdx, mIdx, team, side);
+                drawFullBracket();
+              };
             }
+
+            if (rounds[rIdx][mIdx].winner === tIdx) {
+              teamDiv.classList.add(rIdx === rounds.length - 1 ? "champion" : "winner");
+            }
+
             matchDiv.appendChild(teamDiv);
           });
 
           roundDiv.appendChild(matchDiv);
-          matchRefs[rIdx].push(matchDiv);
         });
 
         container.appendChild(roundDiv);
       });
-
-      drawLines(matchRefs);
     }
 
-    function drawLines(matchRefs) {
-      document.querySelectorAll("svg.connector").forEach(el => el.remove());
-
-      for (let r = 0; r < matchRefs.length - 1; r++) {
-        const current = matchRefs[r];
-        const next = matchRefs[r + 1];
-
-        for (let i = 0; i < next.length; i++) {
-          const left = current[i * 2];
-          const right = current[i * 2 + 1];
-          const dest = next[i];
-          if (!left || !right || !dest) continue;
-
-          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-          svg.classList.add("connector");
-
-          const lRect = left.getBoundingClientRect();
-          const rRect = right.getBoundingClientRect();
-          const dRect = dest.getBoundingClientRect();
-          const cRect = document.getElementById("bracket-container").getBoundingClientRect();
-
-          const x1 = lRect.right - cRect.left;
-          const y1 = (lRect.top + lRect.bottom) / 2 - cRect.top;
-
-          const x2 = rRect.right - cRect.left;
-          const y2 = (rRect.top + rRect.bottom) / 2 - cRect.top;
-
-          const x3 = dRect.left - cRect.left;
-          const y3 = (dRect.top + dRect.bottom) / 2 - cRect.top;
-
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          path.setAttribute("d", `
-            M ${x1} ${y1} 
-            L ${x1 + 10} ${y1}
-            L ${x1 + 10} ${y3}
-            L ${x3} ${y3}
-            M ${x2} ${y2} 
-            L ${x2 + 10} ${y2}
-            L ${x2 + 10} ${y3}
-          `);
-          path.setAttribute("stroke", "#aaa");
-          path.setAttribute("stroke-width", "2");
-          path.setAttribute("fill", "none");
-
-          svg.appendChild(path);
-          document.getElementById("bracket-container").appendChild(svg);
-        }
+    function updateNextRound(rounds, roundIndex, matchIndex, winner, side) {
+      if (roundIndex + 1 >= rounds.length) {
+        // Send winner to final
+        const finalIdx = (side === "left") ? 0 : 1;
+        finalMatch[0][finalIdx] = winner;
+      } else {
+        const nextMatchIndex = Math.floor(matchIndex / 2);
+        const pos = matchIndex % 2;
+        const nextMatch = [...rounds[roundIndex + 1][nextMatchIndex]];
+        nextMatch[pos] = winner;
+        rounds[roundIndex + 1][nextMatchIndex] = nextMatch;
       }
     }
 
-    function handleWinner(roundIndex, matchIndex, teamIndex) {
-      const winner = rounds[roundIndex][matchIndex][teamIndex];
-      if (!winner) return;
+    function drawFinalMatch() {
+      const container = document.getElementById("center-final");
 
-      const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
-      [...matchEl.children].forEach((el, idx) => {
-        el.classList.remove("winner", "champion");
-        if (idx === teamIndex) {
-          el.classList.add(roundIndex === rounds.length - 2 ? "champion" : "winner");
+      const label = document.createElement("div");
+      label.className = "final-label";
+      label.textContent = "Final Match";
+      container.appendChild(label);
+
+      const roundDiv = document.createElement("div");
+      roundDiv.className = "round center-round";
+
+      const match = document.createElement("div");
+      match.className = "match";
+
+      finalMatch[0].forEach((team, tIdx) => {
+        const teamDiv = document.createElement("div");
+        teamDiv.className = "team";
+        teamDiv.innerHTML = team || "<em>?</em>";
+
+        if (team) {
+          teamDiv.onclick = () => {
+            finalMatch[0].winner = tIdx;
+            drawFullBracket();
+          };
         }
+
+        if (finalMatch[0].winner === tIdx) {
+          teamDiv.classList.add("champion");
+        }
+
+        match.appendChild(teamDiv);
       });
 
-      if (roundIndex + 1 < rounds.length) {
-        const nextMatchIndex = Math.floor(matchIndex / 2);
-        const position = matchIndex % 2;
-
-        const next = [...rounds[roundIndex + 1][nextMatchIndex]];
-        next[position] = winner;
-        rounds[roundIndex + 1][nextMatchIndex] = next;
-
-        drawBracket();
-      }
+      roundDiv.appendChild(match);
+      container.appendChild(roundDiv);
     }
   </script>
 </body>
