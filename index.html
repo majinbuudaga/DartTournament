@@ -137,12 +137,18 @@
 <script>
 let rounds = [];
 
-function generateBracket() {
-  const count = parseInt(document.getElementById("playerCount").value);
-  const teamCount = count / 2;
+function getSavedTeams() {
+  const data = localStorage.getItem("tournamentTeams");
+  if (!data) return null;
+  const parsed = JSON.parse(data);
+  return parsed.map(team => team.name); // team names like "Team Edwin & April"
+}
 
-  // Generate teams
+function generateBracket() {
+  const count = parseInt(document.getElementById("playerCount")?.value || 0);
+  const teamCount = count / 2;
   const teams = [];
+
   for (let i = 0; i < teamCount; i++) {
     teams.push(`Team ${String.fromCharCode(65 + i)}`);
   }
@@ -177,8 +183,8 @@ function drawBracket() {
     const roundDiv = document.createElement("div");
     roundDiv.className = "round";
 
-    const totalHeight = maxMatches * 150; // arbitrary total height
-    const matchHeight = 70; // approx match height
+    const totalHeight = maxMatches * 150;
+    const matchHeight = 70;
     const spacing = (totalHeight - (round.length * matchHeight)) / (round.length + 1);
 
     matchRefs[rIdx] = [];
@@ -267,7 +273,6 @@ function handleWinner(roundIndex, matchIndex, teamIndex) {
   const winner = rounds[roundIndex][matchIndex][teamIndex];
   if (!winner) return;
 
-  // Update current match UI
   const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
   [...matchEl.children].forEach((el, idx) => {
     el.classList.remove("winner", "champion");
@@ -276,7 +281,6 @@ function handleWinner(roundIndex, matchIndex, teamIndex) {
     }
   });
 
-  // Propagate winner to the next round
   if (roundIndex + 1 < rounds.length) {
     const nextMatchIndex = Math.floor(matchIndex / 2);
     const position = matchIndex % 2;
@@ -285,12 +289,19 @@ function handleWinner(roundIndex, matchIndex, teamIndex) {
     next[position] = winner;
     rounds[roundIndex + 1][nextMatchIndex] = next;
 
-    drawBracket(); // redraw to reflect new state
+    drawBracket();
   }
 }
 
-// Generate default bracket
-generateBracket();
+// Auto-generate bracket from saved team names if available
+window.onload = () => {
+  const saved = getSavedTeams();
+  if (saved && saved.length >= 2) {
+    createBracket(saved);
+  } else {
+    generateBracket(); // fallback to demo bracket if no saved data
+  }
+};
 </script>
 
 </body>
