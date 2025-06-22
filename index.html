@@ -138,15 +138,22 @@ function drawBracket() {
   container.innerHTML = "";
   const matchRefs = [];
 
+  const maxMatches = Math.max(...rounds.map(r => r.length));
+
   rounds.forEach((round, rIdx) => {
     const roundDiv = document.createElement("div");
     roundDiv.className = "round";
+
+    const totalHeight = maxMatches * 150; // arbitrary total height
+    const matchHeight = 70; // approx match height
+    const spacing = (totalHeight - (round.length * matchHeight)) / (round.length + 1);
 
     matchRefs[rIdx] = [];
 
     round.forEach((match, mIdx) => {
       const matchDiv = document.createElement("div");
       matchDiv.className = "match";
+      matchDiv.style.marginTop = `${spacing}px`;
 
       match.forEach((team, tIdx) => {
         const teamDiv = document.createElement("div");
