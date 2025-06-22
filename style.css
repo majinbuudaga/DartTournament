@@ -1,74 +1,92 @@
+/* General page styles */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f7f7f7;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+}
+
+/* Navigation Bar */
+nav {
+  background-color: #1f2937;
+  padding: 12px 0;
   text-align: center;
-}
-
-h1 {
-  margin-bottom: 30px;
-}
-
-.controls {
-  margin-top: 30px;
-}
-
-button {
-  font-size: 16px;
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-
-.bracket {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  overflow-x: auto;
-  padding: 10px;
-}
-
-.round {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.match {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px;
-  min-width: 160px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.team {
-  padding: 6px;
-  margin: 4px 0;
+nav a {
+  color: #ffffff;
+  margin: 0 20px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* Page Content */
+h1, h2 {
+  text-align: center;
+  color: #1a202c;
+}
+
+.container {
+  max-width: 800px;
+  margin: 30px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Form Styling */
+textarea {
+  width: 100%;
+  height: 200px;
+  font-size: 16px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 20px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.team:hover {
-  background-color: #eee;
+button:hover {
+  background-color: #1e40af;
 }
 
-.winner {
-  background-color: #c6efce !important;
-  font-weight: bold;
+/* Team Display */
+#teams {
+  margin-top: 30px;
 }
 
-.champion {
-  background-color: gold !important;
-  font-weight: bold;
+.team {
+  background: #f9fafb;
+  padding: 15px;
+  margin: 10px 0;
+  border-left: 5px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.team strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #111827;
 }
