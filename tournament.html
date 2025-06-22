@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tournament App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f4f4f4;
+    }
+    nav {
+      background: #333;
+      padding: 1em;
+      display: flex;
+      gap: 1em;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .container {
+      padding: 1em;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+    }
+    .form-group {
+      margin-bottom: 1em;
+    }
+    .round {
+      display: inline-block;
+      vertical-align: top;
+      margin: 1em;
+    }
+    .match {
+      background: white;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      padding: 5px;
+      text-align: center;
+    }
+    .team {
+      padding: 4px;
+      margin: 2px 0;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .team.winner {
+      background-color: lightgreen;
+      font-weight: bold;
+    }
+    .team.champion {
+      background-color: gold;
+      font-weight: bold;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    #bracket-container {
+      position: relative;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 2em;
+    }
+    svg.connector {
+      position: absolute;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" onclick="showPage('bracket')">🏆 Bracket</a>
+  <a href="#" onclick="showPage('create')">👥 Create Teams</a>
+</nav>
+
+<div class="container">
+
+  <!-- Create Teams Page -->
+  <div id="create" class="page active">
+    <h2>Create Teams</h2>
+    <div class="form-group">
+      <label>Enter player names (one per line):</label><br>
+      <textarea id="playerNames" placeholder="e.g.\nAlice\nBob\nCharlie\nDana"></textarea>
+    </div>
+    <button onclick="createTeams()">Generate Teams</button>
+    <p id="teamPreview"></p>
+  </div>
+
+  <!-- Bracket Page -->
+  <div id="bracket" class="page">
+    <h2>Tournament Bracket</h2>
+    <div id="bracket-container"></div>
+  </div>
+
+</div>
+
+<script>
+let rounds = [];
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  if (id === "bracket") {
+    const teams = getSavedTeams();
+    if (teams.length >= 2) {
+      createBracket(teams);
+    }
+  }
+}
+
+function createTeams() {
+  const raw = document.getElementById("playerNames").value;
+  const players = raw.split('\n').map(p => p.trim()).filter(Boolean);
+  shuffle(players);
+  const teams = [];
+
+  for (let i = 0; i < players.length; i += 2) {
+    const p1 = players[i];
+    const p2 = players[i + 1] || "";
+    const team = {
+      name: `Team ${p1}${p2 ? " & " + p2 : ""}`,
+      players: [p1, ...(p2 ? [p2] : [])]
+    };
+    teams.push(team);
+  }
+
+  localStorage.setItem("tournamentTeams", JSON.stringify(teams));
+  document.getElementById("teamPreview").textContent = `Created ${teams.length} teams. Switch to the bracket to view.`;
+}
+
+function getSavedTeams() {
+  const data = localStorage.getItem("tournamentTeams");
+  if (!data) return [];
+  const parsed = JSON.parse(data);
+  return parsed.map(team => team.name);
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function createBracket(teams) {
+  const r1 = [];
+  for (let i = 0; i < teams.length; i += 2) {
+    r1.push([teams[i], teams[i + 1] || "BYE"]);
+  }
+
+  rounds = [r1];
+  let numMatches = r1.length / 2;
+  while (numMatches >= 1) {
+    rounds.push(new Array(Math.ceil(numMatches)).fill([null, null]));
+    numMatches = Math.floor(numMatches / 2);
+  }
+
+  drawBracket();
+}
+
+function drawBracket() {
+  const container = document.getElementById("bracket-container");
+  container.innerHTML = "";
+  const matchRefs = [];
+  const maxMatches = Math.max(...rounds.map(r => r.length));
+
+  rounds.forEach((round, rIdx) => {
+    const roundDiv = document.createElement("div");
+    roundDiv.className = "round";
+
+    const totalHeight = maxMatches * 150;
+    const matchHeight = 70;
+    const spacing = (totalHeight - (round.length * matchHeight)) / (round.length + 1);
+
+    matchRefs[rIdx] = [];
+
+    round.forEach((match, mIdx) => {
+      const matchDiv = document.createElement("div");
+      matchDiv.className = "match";
+      matchDiv.style.marginTop = `${spacing}px`;
+
+      match.forEach((team, tIdx) => {
+        const teamDiv = document.createElement("div");
+        teamDiv.className = "team";
+        teamDiv.innerHTML = team ? team : "<em>?</em>";
+        if (team && team !== "BYE") {
+          teamDiv.onclick = () => handleWinner(rIdx, mIdx, tIdx);
+        }
+        matchDiv.appendChild(teamDiv);
+      });
+
+      roundDiv.appendChild(matchDiv);
+      matchRefs[rIdx].push(matchDiv);
+    });
+
+    container.appendChild(roundDiv);
+  });
+
+  drawLines(matchRefs);
+}
+
+function drawLines(matchRefs) {
+  document.querySelectorAll("svg.connector").forEach(el => el.remove());
+
+  for (let r = 0; r < matchRefs.length - 1; r++) {
+    const current = matchRefs[r];
+    const next = matchRefs[r + 1];
+
+    for (let i = 0; i < next.length; i++) {
+      const left = current[i * 2];
+      const right = current[i * 2 + 1];
+      const dest = next[i];
+      if (!left || !right || !dest) continue;
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("connector");
+
+      const lRect = left.getBoundingClientRect();
+      const rRect = right.getBoundingClientRect();
+      const dRect = dest.getBoundingClientRect();
+      const cRect = document.getElementById("bracket-container").getBoundingClientRect();
+
+      const x1 = lRect.right - cRect.left;
+      const y1 = (lRect.top + lRect.bottom) / 2 - cRect.top;
+      const x2 = rRect.right - cRect.left;
+      const y2 = (rRect.top + rRect.bottom) / 2 - cRect.top;
+      const x3 = dRect.left - cRect.left;
+      const y3 = (dRect.top + dRect.bottom) / 2 - cRect.top;
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `
+        M ${x1} ${y1} 
+        L ${x1 + 10} ${y1}
+        L ${x1 + 10} ${y3}
+        L ${x3} ${y3}
+        M ${x2} ${y2} 
+        L ${x2 + 10} ${y2}
+        L ${x2 + 10} ${y3}
+      `);
+      path.setAttribute("stroke", "#aaa");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("fill", "none");
+
+      svg.appendChild(path);
+      svg.style.position = "absolute";
+      svg.style.top = "0";
+      svg.style.left = "0";
+      svg.style.width = "100%";
+      svg.style.height = "100%";
+      svg.style.overflow = "visible";
+      document.getElementById("bracket-container").appendChild(svg);
+    }
+  }
+}
+
+function handleWinner(roundIndex, matchIndex, teamIndex) {
+  const winner = rounds[roundIndex][matchIndex][teamIndex];
+  if (!winner) return;
+
+  const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
+  [...matchEl.children].forEach((el, idx) => {
+    el.classList.remove("winner", "champion");
+    if (idx === teamIndex) {
+      el.classList.add(roundIndex === rounds.length - 1 ? "champion" : "winner");
+    }
+  });
+
+  if (roundIndex + 1 < rounds.length) {
+    const nextMatchIndex = Math.floor(matchIndex / 2);
+    const position = matchIndex % 2;
+    const next = [...rounds[roundIndex + 1][nextMatchIndex]];
+    next[position] = winner;
+    rounds[roundIndex + 1][nextMatchIndex] = next;
+    drawBracket();
+  }
+}
+</script>
+
+</body>
+</html>
