@@ -3,7 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <title>Create Teams</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== General Page Styles ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== Navigation ===== */
+nav {
+  background-color: #1f2937;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  margin: 0 20px;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Heading ===== */
+h1 {
+  text-align: center;
+  margin: 30px 0 20px;
+  font-size: 28px;
+  color: #1f2937;
+}
+
+/* ===== Form Group ===== */
+.form-group {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+textarea {
+  width: 100%;
+  height: 200px;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* ===== Button ===== */
+button {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #1e40af;
+}
+
+/* ===== Teams Output ===== */
+#teams {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.team {
+  background-color: #ffffff;
+  margin: 12px 0;
+  padding: 15px;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.team strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 16px;
+  color: #111827;
+}
+</style>
 </head>
 <body>
 
