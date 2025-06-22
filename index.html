@@ -234,21 +234,25 @@ function handleWinner(roundIndex, matchIndex, teamIndex) {
   const winner = rounds[roundIndex][matchIndex][teamIndex];
   if (!winner) return;
 
+  // Update current match UI
   const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
-  [...matchEl.children].forEach(el => {
+  [...matchEl.children].forEach((el, idx) => {
     el.classList.remove("winner", "champion");
-    if (el.textContent === winner) {
+    if (idx === teamIndex) {
       el.classList.add(roundIndex === rounds.length - 1 ? "champion" : "winner");
     }
   });
 
+  // Propagate winner to the next round
   if (roundIndex + 1 < rounds.length) {
     const nextMatchIndex = Math.floor(matchIndex / 2);
     const position = matchIndex % 2;
+
     const next = [...rounds[roundIndex + 1][nextMatchIndex]];
     next[position] = winner;
     rounds[roundIndex + 1][nextMatchIndex] = next;
-    drawBracket();
+
+    drawBracket(); // redraw to reflect new state
   }
 }
 
