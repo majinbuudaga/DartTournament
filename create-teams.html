@@ -128,10 +128,7 @@ button:hover {
 <script>
 function generateTeams() {
   const input = document.getElementById("playerNames").value;
-  const names = input
-    .split('\n')
-    .map(name => name.trim())
-    .filter(name => name !== "");
+  const names = input.split('\n').map(name => name.trim()).filter(n => n);
 
   if (names.length < 2) {
     alert("Enter at least two players.");
@@ -146,17 +143,21 @@ function generateTeams() {
 
   const teams = [];
   for (let i = 0; i < names.length; i += 2) {
-    teams.push([names[i], names[i + 1] || "BYE"]);
+    const player1 = names[i];
+    const player2 = names[i + 1] || "BYE";
+    const teamName = `Team ${player1} & ${player2}`;
+    teams.push({ name: teamName, players: [player1, player2] });
   }
 
-  // Display teams
+  localStorage.setItem("tournamentTeams", JSON.stringify(teams));
+
   const output = document.getElementById("teams");
   output.innerHTML = "<h2>Generated Teams:</h2>";
-  teams.forEach((team, index) => {
+  teams.forEach(team => {
     output.innerHTML += `
       <div class="team">
-        <strong>Team ${String.fromCharCode(65 + index)}</strong><br>
-        ${team[0]} & ${team[1]}
+        <strong>${team.name}</strong><br>
+        ${team.players.join(" & ")}
       </div>`;
   });
 }
