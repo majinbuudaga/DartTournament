@@ -2,236 +2,253 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tournament Bracket</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      margin: 0;
+      padding: 2rem;
+      background: #f7f9fc;
     }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
     textarea {
       width: 100%;
       height: 150px;
-      margin-bottom: 10px;
       padding: 10px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
     }
+
     button {
+      display: block;
+      margin: 0 auto 2rem auto;
       padding: 10px 20px;
-      margin-bottom: 20px;
-      font-size: 16px;
+      font-size: 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
+
     #bracket-container {
-      position: relative;
       display: flex;
-      gap: 40px;
       overflow-x: auto;
-      padding-bottom: 100px;
+      position: relative;
+      padding: 2rem 0;
+      min-height: 500px;
     }
+
     .round {
       display: flex;
       flex-direction: column;
+      justify-content: center;
       align-items: center;
+      min-width: 200px;
+      position: relative;
     }
+
     .match {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 40px;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 20px 0;
+      padding: 10px;
+      width: 160px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+
     .team {
-      border: 1px solid #999;
-      padding: 5px 10px;
-      margin: 5px;
-      min-width: 120px;
-      text-align: center;
+      padding: 5px;
       cursor: pointer;
-      background: #f9f9f9;
-      border-radius: 6px;
+      transition: background-color 0.3s;
     }
-    .team.winner {
-      background: #c8f7c5;
-      border-color: #3c763d;
+
+    .team:hover {
+      background-color: #f1f1f1;
+    }
+
+    .winner {
+      background-color: #d1e7dd;
       font-weight: bold;
     }
-    .team.champion {
-      background: gold;
-      border-color: goldenrod;
+
+    .champion {
+      background-color: gold;
       font-weight: bold;
     }
+
     svg.connector {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
+      overflow: visible;
+      z-index: 0;
     }
   </style>
 </head>
 <body>
+  <h1>Create Tournament Bracket</h1>
+  <textarea id="players" placeholder="Enter one player name per line"></textarea>
+  <button onclick="createTeamsAndBracket()">Generate Bracket</button>
 
-<h1>🏆 Tournament Bracket Generator</h1>
+  <div id="bracket-container"></div>
 
-<label for="players">Enter player names (one per line):</label>
-<textarea id="players" placeholder="Alice\nBob\nCharlie\nDana\n..."></textarea>
-<br>
-<button onclick="createTeamsAndBracket()">Generate Bracket</button>
+  <script>
+    let rounds = [];
 
-<div id="bracket-container"></div>
+    function createTeamsAndBracket() {
+      const input = document.getElementById("players").value.trim();
+      if (!input) return;
 
-<script>
-let rounds = [];
+      const names = input.split("\n").map(n => n.trim()).filter(Boolean);
+      const shuffled = names.sort(() => 0.5 - Math.random());
 
-function createTeamsAndBracket() {
-  const input = document.getElementById("players").value.trim();
-  if (!input) return;
+      const teams = [];
+      for (let i = 0; i < shuffled.length;) {
+        const teamSize = (shuffled.length - i >= 4) ? 2 : shuffled.length - i;
+        const teamMembers = shuffled.slice(i, i + teamSize);
+        teams.push("Team " + teamMembers.join(" & "));
+        i += teamSize;
+      }
 
-  const names = input.split("\n").map(n => n.trim()).filter(Boolean);
-  const shuffled = names.sort(() => 0.5 - Math.random());
+      createBracket(teams);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
-  const teams = [];
-  for (let i = 0; i < shuffled.length;) {
-    const teamSize = (shuffled.length - i >= 4) ? 2 : shuffled.length - i;
-    const teamMembers = shuffled.slice(i, i + teamSize);
-    teams.push("Team " + teamMembers.join(" & "));
-    i += teamSize;
-  }
+    function createBracket(teams) {
+      const r1 = [];
+      for (let i = 0; i < teams.length; i += 2) {
+        r1.push([teams[i], teams[i + 1] || null]);
+      }
+      rounds = [r1];
 
-  createBracket(teams);
-}
+      let numMatches = r1.length / 2;
+      while (numMatches >= 1) {
+        rounds.push(new Array(Math.ceil(numMatches)).fill([null, null]));
+        numMatches /= 2;
+      }
 
-function createBracket(teams) {
-  const r1 = [];
-  for (let i = 0; i < teams.length; i += 2) {
-    r1.push([teams[i], teams[i + 1] || null]);
-  }
-  rounds = [r1];
+      drawBracket();
+    }
 
-  let numMatches = Math.ceil(r1.length / 2);
-  while (numMatches >= 1) {
-    rounds.push(new Array(numMatches).fill([null, null]));
-    numMatches = Math.floor(numMatches / 2);
-  }
+    function drawBracket() {
+      const container = document.getElementById("bracket-container");
+      container.innerHTML = "";
+      const matchRefs = [];
 
-  drawBracket();
-}
+      const maxMatches = Math.max(...rounds.map(r => r.length));
 
-function drawBracket() {
-  const container = document.getElementById("bracket-container");
-  container.innerHTML = "";
-  const matchRefs = [];
+      rounds.forEach((round, rIdx) => {
+        const roundDiv = document.createElement("div");
+        roundDiv.className = "round";
 
-  const maxMatches = Math.max(...rounds.map(r => r.length));
+        matchRefs[rIdx] = [];
 
-  rounds.forEach((round, rIdx) => {
-    const roundDiv = document.createElement("div");
-    roundDiv.className = "round";
+        round.forEach((match, mIdx) => {
+          const matchDiv = document.createElement("div");
+          matchDiv.className = "match";
 
-    const totalHeight = maxMatches * 150;
-    const matchHeight = 70;
-    const spacing = (totalHeight - (round.length * matchHeight)) / (round.length + 1);
+          match.forEach((team, tIdx) => {
+            const teamDiv = document.createElement("div");
+            teamDiv.className = "team";
+            teamDiv.innerHTML = team || "<em>?</em>";
+            if (team) {
+              teamDiv.onclick = () => handleWinner(rIdx, mIdx, tIdx);
+            }
+            matchDiv.appendChild(teamDiv);
+          });
 
-    matchRefs[rIdx] = [];
+          roundDiv.appendChild(matchDiv);
+          matchRefs[rIdx].push(matchDiv);
+        });
 
-    round.forEach((match, mIdx) => {
-      const matchDiv = document.createElement("div");
-      matchDiv.className = "match";
-      matchDiv.style.marginTop = `${spacing}px`;
-
-      match.forEach((team, tIdx) => {
-        const teamDiv = document.createElement("div");
-        teamDiv.className = "team";
-        teamDiv.innerHTML = team || "<em>?</em>";
-        if (team) {
-          teamDiv.onclick = () => handleWinner(rIdx, mIdx, tIdx);
-        }
-        matchDiv.appendChild(teamDiv);
+        container.appendChild(roundDiv);
       });
 
-      roundDiv.appendChild(matchDiv);
-      matchRefs[rIdx].push(matchDiv);
-    });
-
-    container.appendChild(roundDiv);
-  });
-
-  drawLines(matchRefs);
-}
-
-function drawLines(matchRefs) {
-  document.querySelectorAll("svg.connector").forEach(el => el.remove());
-
-  for (let r = 0; r < matchRefs.length - 1; r++) {
-    const current = matchRefs[r];
-    const next = matchRefs[r + 1];
-
-    for (let i = 0; i < next.length; i++) {
-      const left = current[i * 2];
-      const right = current[i * 2 + 1];
-      const dest = next[i];
-
-      if (!left || !right || !dest) continue;
-
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.classList.add("connector");
-
-      const lRect = left.getBoundingClientRect();
-      const rRect = right.getBoundingClientRect();
-      const dRect = dest.getBoundingClientRect();
-      const cRect = document.getElementById("bracket-container").getBoundingClientRect();
-
-      const x1 = lRect.right - cRect.left;
-      const y1 = (lRect.top + lRect.bottom) / 2 - cRect.top;
-
-      const x2 = rRect.right - cRect.left;
-      const y2 = (rRect.top + rRect.bottom) / 2 - cRect.top;
-
-      const x3 = dRect.left - cRect.left;
-      const y3 = (dRect.top + dRect.bottom) / 2 - cRect.top;
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", `
-        M ${x1} ${y1} 
-        L ${x1 + 10} ${y1}
-        L ${x1 + 10} ${y3}
-        L ${x3} ${y3}
-        M ${x2} ${y2} 
-        L ${x2 + 10} ${y2}
-        L ${x2 + 10} ${y3}
-      `);
-      path.setAttribute("stroke", "#aaa");
-      path.setAttribute("stroke-width", "2");
-      path.setAttribute("fill", "none");
-
-      svg.appendChild(path);
-      document.getElementById("bracket-container").appendChild(svg);
+      drawLines(matchRefs);
     }
-  }
-}
 
-function handleWinner(roundIndex, matchIndex, teamIndex) {
-  const winner = rounds[roundIndex][matchIndex][teamIndex];
-  if (!winner) return;
+    function drawLines(matchRefs) {
+      document.querySelectorAll("svg.connector").forEach(el => el.remove());
 
-  const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
-  [...matchEl.children].forEach((el, idx) => {
-    el.classList.remove("winner", "champion");
-    if (idx === teamIndex) {
-      el.classList.add(roundIndex === rounds.length - 1 ? "champion" : "winner");
+      for (let r = 0; r < matchRefs.length - 1; r++) {
+        const current = matchRefs[r];
+        const next = matchRefs[r + 1];
+
+        for (let i = 0; i < next.length; i++) {
+          const left = current[i * 2];
+          const right = current[i * 2 + 1];
+          const dest = next[i];
+          if (!left || !right || !dest) continue;
+
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.classList.add("connector");
+
+          const lRect = left.getBoundingClientRect();
+          const rRect = right.getBoundingClientRect();
+          const dRect = dest.getBoundingClientRect();
+          const cRect = document.getElementById("bracket-container").getBoundingClientRect();
+
+          const x1 = lRect.right - cRect.left;
+          const y1 = (lRect.top + lRect.bottom) / 2 - cRect.top;
+
+          const x2 = rRect.right - cRect.left;
+          const y2 = (rRect.top + rRect.bottom) / 2 - cRect.top;
+
+          const x3 = dRect.left - cRect.left;
+          const y3 = (dRect.top + dRect.bottom) / 2 - cRect.top;
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", `
+            M ${x1} ${y1} 
+            L ${x1 + 10} ${y1}
+            L ${x1 + 10} ${y3}
+            L ${x3} ${y3}
+            M ${x2} ${y2} 
+            L ${x2 + 10} ${y2}
+            L ${x2 + 10} ${y3}
+          `);
+          path.setAttribute("stroke", "#aaa");
+          path.setAttribute("stroke-width", "2");
+          path.setAttribute("fill", "none");
+
+          svg.appendChild(path);
+          document.getElementById("bracket-container").appendChild(svg);
+        }
+      }
     }
-  });
 
-  if (roundIndex + 1 < rounds.length) {
-    const nextMatchIndex = Math.floor(matchIndex / 2);
-    const position = matchIndex % 2;
+    function handleWinner(roundIndex, matchIndex, teamIndex) {
+      const winner = rounds[roundIndex][matchIndex][teamIndex];
+      if (!winner) return;
 
-    const next = [...rounds[roundIndex + 1][nextMatchIndex]];
-    next[position] = winner;
-    rounds[roundIndex + 1][nextMatchIndex] = next;
+      const matchEl = document.querySelectorAll(".round")[roundIndex].children[matchIndex];
+      [...matchEl.children].forEach((el, idx) => {
+        el.classList.remove("winner", "champion");
+        if (idx === teamIndex) {
+          el.classList.add(roundIndex === rounds.length - 2 ? "champion" : "winner");
+        }
+      });
 
-    drawBracket();
-  }
-}
-</script>
+      if (roundIndex + 1 < rounds.length) {
+        const nextMatchIndex = Math.floor(matchIndex / 2);
+        const position = matchIndex % 2;
+
+        const next = [...rounds[roundIndex + 1][nextMatchIndex]];
+        next[position] = winner;
+        rounds[roundIndex + 1][nextMatchIndex] = next;
+
+        drawBracket();
+      }
+    }
+  </script>
 </body>
 </html>
